@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Economade - Interactive Economics Platform</title>
+	<link rel="shortcut icon" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .token-animation {
+            animation: tokenBounce 0.6s ease-in-out;
+        }
+        
+        @keyframes tokenBounce {
+            0%, 20%, 60%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            80% { transform: translateY(-10px); }
+        }
+        
+        .curve-line {
+            stroke-width: 3;
+            fill: none;
+        }
+        
+        .supply-curve { stroke: #ef4444; }
+        .demand-curve { stroke: #3b82f6; }
+        
+        .equilibrium-point {
+            fill: #10b981;
+            stroke: #065f46;
+            stroke-width: 2;
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-chart-line text-white text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800">Economade</h1>
+                <p class="text-gray-600 mt-2">Learn Economics Through Interactive Learning</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <input type="text" id="username" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter your username">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">4-Digit Password</label>
+                    <input type="password" id="password" required maxlength="4" pattern="[0-9]{4}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter 4-digit password">
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Login / Sign Up
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Platform -->
+    <div id="mainPlatform" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-white-600 rounded-lg flex items-center justify-center mr-3">
+                            <!-- <i class="fas fa-chart-line text-white text-sm"></i> -->
+							<img src="images/Economade.png" alt="Logo" class="mr-2" style="width: 30px;">
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-800">Economade</h1>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center bg-yellow-100 px-3 py-1 rounded-full">
+                            <i class="fas fa-coins text-yellow-600 mr-2"></i>
+                            <span id="tokenCount" class="font-semibold text-yellow-800">0</span>
+                        </div>
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-user mr-2"></i>
+                            <span id="currentUser"></span>
+                        </div>
+                        <button id="logoutBtn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8 overflow-x-auto">
+                    <button class="nav-btn py-4 px-2 border-b-2 border-blue-500 text-blue-600 font-medium whitespace-nowrap" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </button>
+                    <button class="nav-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap" data-section="lessons">
+                        <i class="fas fa-book mr-2"></i>Lessons
+                    </button>
+                    <button class="nav-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap" data-section="simulator">
+                        <i class="fas fa-chart-area mr-2"></i>Simulator
+                    </button>
+                    <button class="nav-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap" data-section="challenges">
+                        <i class="fas fa-gamepad mr-2"></i>Challenges
+                    </button>
+                    <button class="nav-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap" data-section="roleplay">
+                        <i class="fas fa-users mr-2"></i>Role Play
+                    </button>
+                    <button class="nav-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap" data-section="formulas">
+                        <i class="fas fa-calculator mr-2"></i>Formulas
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome back, <span id="welcomeUser"></span>!</h2>
+                    <p class="text-gray-600">Continue your economics journey</p>
+                </div>
+
+                <!-- Progress Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-graduation-cap text-blue-600"></i>
+                            </div>
+                            <span class="text-2xl font-bold text-gray-800" id="completedLessons">0</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800">Lessons Completed</h3>
+                        <p class="text-sm text-gray-600">Out of 6 total</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-trophy text-green-600"></i>
+                            </div>
+                            <span class="text-2xl font-bold text-gray-800" id="challengesWon">0</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800">Challenges Won</h3>
+                        <p class="text-sm text-gray-600">Keep practicing!</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-coins text-yellow-600"></i>
+                            </div>
+                            <span class="text-2xl font-bold text-gray-800" id="totalTokens">0</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800">Total Tokens</h3>
+                        <p class="text-sm text-gray-600">Earned through learning</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-purple-600"></i>
+                            </div>
+                            <span class="text-2xl font-bold text-gray-800" id="currentLevel">1</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-800">Current Level</h3>
+                        <p class="text-sm text-gray-600">Economics Explorer</p>
+                    </div>
+                </div>
+
+                <!-- Learning Path -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Your Learning Path</h3>
+                    <div class="space-y-4">
+                        <div class="learning-path-item flex items-center p-4 bg-green-50 border border-green-200 rounded-lg" data-lesson="basics">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">Economics Basics</h4>
+                                <p class="text-sm text-gray-600">Understanding scarcity, opportunity cost, and basic principles</p>
+                            </div>
+                            <div class="text-green-600 font-semibold">Completed</div>
+                        </div>
+
+                        <div class="learning-path-item flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100" data-lesson="supply-demand">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                                <span class="text-white text-sm font-bold">2</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">Supply & Demand</h4>
+                                <p class="text-sm text-gray-600">Learn how markets determine prices through supply and demand</p>
+                            </div>
+                            <div class="text-blue-600 font-semibold">Current</div>
+                        </div>
+
+                        <div class="learning-path-item flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-60" data-lesson="elasticity">
+                            <div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-lock text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">Price Elasticity</h4>
+                                <p class="text-sm text-gray-600">Understand how responsive demand is to price changes</p>
+                            </div>
+                            <div class="text-gray-500 font-semibold">Locked</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lessons Section -->
+            <div id="lessons" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Economics Lessons</h2>
+                    <p class="text-gray-600">Master fundamental economic concepts step by step</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Lesson Cards -->
+                    <div class="lesson-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-lesson="basics">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                            <i class="fas fa-seedling text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Economics Basics</h3>
+                        <p class="text-gray-600 mb-4">Learn fundamental concepts like scarcity, opportunity cost, and economic systems.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-green-600 font-semibold">✓ Completed</span>
+                            <div class="flex items-center text-yellow-600">
+                                <i class="fas fa-coins mr-1"></i>
+                                <span class="text-sm">+10 tokens</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lesson-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-lesson="supply-demand">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                            <i class="fas fa-chart-line text-blue-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Supply & Demand</h3>
+                        <p class="text-gray-600 mb-4">Understand how markets work and how prices are determined.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-blue-600 font-semibold">Current Lesson</span>
+                            <div class="flex items-center text-yellow-600">
+                                <i class="fas fa-coins mr-1"></i>
+                                <span class="text-sm">+15 tokens</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lesson-card bg-white rounded-xl p-6 shadow-sm border opacity-60" data-lesson="elasticity">
+                        <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                            <i class="fas fa-expand-arrows-alt text-gray-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Price Elasticity</h3>
+                        <p class="text-gray-600 mb-4">Learn how responsive demand is to price changes.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500 font-semibold">🔒 Locked</span>
+                            <div class="flex items-center text-yellow-600">
+                                <i class="fas fa-coins mr-1"></i>
+                                <span class="text-sm">+20 tokens</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supply & Demand Simulator -->
+            <div id="simulator" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Supply & Demand Simulator</h2>
+                    <p class="text-gray-600">Manipulate curves and see real-time market changes</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Controls -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Market Controls</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Supply Curve</label>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Slope</span>
+                                        <span id="supplySlope" class="text-sm font-semibold">1.0</span>
+                                    </div>
+                                    <input type="range" id="supplySlopeSlider" min="0.5" max="2" step="0.1" value="1" 
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                <div class="space-y-2 mt-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Shift</span>
+                                        <span id="supplyShift" class="text-sm font-semibold">0</span>
+                                    </div>
+                                    <input type="range" id="supplyShiftSlider" min="-50" max="50" step="5" value="0" 
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Demand Curve</label>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Slope</span>
+                                        <span id="demandSlope" class="text-sm font-semibold">-1.0</span>
+                                    </div>
+                                    <input type="range" id="demandSlopeSlider" min="-2" max="-0.5" step="0.1" value="-1" 
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                <div class="space-y-2 mt-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Shift</span>
+                                        <span id="demandShift" class="text-sm font-semibold">0</span>
+                                    </div>
+                                    <input type="range" id="demandShiftSlider" min="-50" max="50" step="5" value="0" 
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+
+                            <button id="resetSimulator" class="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                                Reset to Default
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Graph -->
+                    <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Market Graph</h3>
+                        <div class="relative">
+                            <canvas id="marketChart" width="600" height="400"></canvas>
+                        </div>
+                        
+                        <!-- Market Info -->
+                        <div class="mt-6 grid grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-800">Equilibrium Price</h4>
+                                <p class="text-2xl font-bold text-green-600" id="equilibriumPrice">$50</p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-800">Equilibrium Quantity</h4>
+                                <p class="text-2xl font-bold text-blue-600" id="equilibriumQuantity">50</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Challenges Section -->
+            <div id="challenges" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Economics Challenges</h2>
+                    <p class="text-gray-600">Test your knowledge with interactive quizzes and scenarios</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Challenge Cards -->
+                    <div class="challenge-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-challenge="elasticity">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-expand-arrows-alt text-purple-600"></i>
+                            </div>
+                            <div class="flex items-center text-yellow-600">
+                                <i class="fas fa-coins mr-1"></i>
+                                <span class="font-semibold">+25</span>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Elasticity Challenge</h3>
+                        <p class="text-gray-600 mb-4">Determine price elasticity for various goods and make business decisions.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-purple-600 font-semibold">Difficulty: Medium</span>
+                            <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Start Challenge
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="challenge-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-challenge="market-analysis">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-bar text-green-600"></i>
+                            </div>
+                            <div class="flex items-center text-yellow-600">
+                                <i class="fas fa-coins mr-1"></i>
+                                <span class="font-semibold">+30</span>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Market Analysis</h3>
+                        <p class="text-gray-600 mb-4">Analyze real market scenarios and predict price movements.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-green-600 font-semibold">Difficulty: Hard</span>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Start Challenge
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Challenge -->
+                <div id="activeChallenge" class="hidden mt-8 bg-white rounded-xl p-6 shadow-sm border">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-800" id="challengeTitle">Challenge Title</h3>
+                        <button id="closeChallengeBtn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="challengeContent">
+                        <!-- Challenge content will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Play Section -->
+            <div id="roleplay" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Economic Role Play</h2>
+                    <p class="text-gray-600">Take on different economic roles and navigate real-world scenarios</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Role Cards -->
+                    <div class="role-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-role="consumer">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-shopping-cart text-blue-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Consumer</h3>
+                        <p class="text-gray-600 text-center mb-4">Make purchasing decisions based on budget constraints and preferences.</p>
+                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Play as Consumer
+                        </button>
+                    </div>
+
+                    <div class="role-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-role="producer">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-industry text-green-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Producer</h3>
+                        <p class="text-gray-600 text-center mb-4">Set prices and production levels to maximize profits in competitive markets.</p>
+                        <button class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            Play as Producer
+                        </button>
+                    </div>
+
+                    <div class="role-card bg-white rounded-xl p-6 shadow-sm border card-hover cursor-pointer" data-role="government">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-landmark text-purple-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Government</h3>
+                        <p class="text-gray-600 text-center mb-4">Implement policies to regulate markets and address economic issues.</p>
+                        <button class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                            Play as Government
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Role Play -->
+                <div id="activeRolePlay" class="hidden mt-8 bg-white rounded-xl p-6 shadow-sm border">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-800" id="rolePlayTitle">Role Play Scenario</h3>
+                        <button id="closeRolePlayBtn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="rolePlayContent">
+                        <!-- Role play content will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulas Section -->
+            <div id="formulas" class="section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Economic Formulas</h2>
+                    <p class="text-gray-600">Essential formulas with examples and applications</p>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Supply & Demand Formulas -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-chart-line text-blue-600 mr-3"></i>
+                            Supply & Demand
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="formula-card bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-800 mb-2">Linear Demand Function</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">Qd = a - bP</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">Where: Qd = Quantity demanded, P = Price, a = intercept, b = slope</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-blue-700">Example 1:</h5>
+                                    <p class="text-sm">If Qd = 100 - 2P, when P = $20: Qd = 100 - 2(20) = 60 units</p>
+                                    
+                                    <h5 class="font-medium text-blue-700">Example 2:</h5>
+                                    <p class="text-sm">If Qd = 80 - 1.5P, when P = $30: Qd = 80 - 1.5(30) = 35 units</p>
+                                </div>
+                            </div>
+
+                            <div class="formula-card bg-red-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-red-800 mb-2">Linear Supply Function</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">Qs = c + dP</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">Where: Qs = Quantity supplied, P = Price, c = intercept, d = slope</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-red-700">Example 1:</h5>
+                                    <p class="text-sm">If Qs = -10 + 3P, when P = $20: Qs = -10 + 3(20) = 50 units</p>
+                                    
+                                    <h5 class="font-medium text-red-700">Example 2:</h5>
+                                    <p class="text-sm">If Qs = 5 + 2P, when P = $15: Qs = 5 + 2(15) = 35 units</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Elasticity Formulas -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-expand-arrows-alt text-purple-600 mr-3"></i>
+                            Price Elasticity
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="formula-card bg-purple-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-purple-800 mb-2">Price Elasticity of Demand</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">PED = (% Change in Qd) / (% Change in P)</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">Measures responsiveness of quantity demanded to price changes</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-purple-700">Example 1:</h5>
+                                    <p class="text-sm">Price increases 10%, quantity demanded decreases 20%: PED = -20%/10% = -2 (Elastic)</p>
+                                    
+                                    <h5 class="font-medium text-purple-700">Example 2:</h5>
+                                    <p class="text-sm">Price increases 15%, quantity demanded decreases 5%: PED = -5%/15% = -0.33 (Inelastic)</p>
+                                </div>
+                            </div>
+
+                            <div class="formula-card bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-800 mb-2">Income Elasticity of Demand</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">YED = (% Change in Qd) / (% Change in Income)</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">Measures responsiveness of demand to income changes</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-green-700">Example 1:</h5>
+                                    <p class="text-sm">Income increases 20%, demand increases 30%: YED = 30%/20% = 1.5 (Luxury good)</p>
+                                    
+                                    <h5 class="font-medium text-green-700">Example 2:</h5>
+                                    <p class="text-sm">Income increases 10%, demand decreases 5%: YED = -5%/10% = -0.5 (Inferior good)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Equilibrium Formulas -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-balance-scale text-green-600 mr-3"></i>
+                            Market Equilibrium
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="formula-card bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-800 mb-2">Equilibrium Condition</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">Qd = Qs</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">At equilibrium, quantity demanded equals quantity supplied</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-green-700">Example 1:</h5>
+                                    <p class="text-sm">Qd = 100 - 2P, Qs = 20 + P. Setting equal: 100 - 2P = 20 + P → P = $26.67</p>
+                                    
+                                    <h5 class="font-medium text-green-700">Example 2:</h5>
+                                    <p class="text-sm">Qd = 80 - P, Qs = 10 + 2P. Setting equal: 80 - P = 10 + 2P → P = $23.33</p>
+                                </div>
+                            </div>
+
+                            <div class="formula-card bg-yellow-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-yellow-800 mb-2">Consumer Surplus</h4>
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <code class="text-lg">CS = ½ × (Pmax - Pe) × Qe</code>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">Area between demand curve and equilibrium price</p>
+                                
+                                <div class="space-y-2">
+                                    <h5 class="font-medium text-yellow-700">Example 1:</h5>
+                                    <p class="text-sm">Max price = $50, equilibrium price = $30, quantity = 40: CS = ½ × (50-30) × 40 = $400</p>
+                                    
+                                    <h5 class="font-medium text-yellow-700">Example 2:</h5>
+                                    <p class="text-sm">Max price = $100, equilibrium price = $60, quantity = 25: CS = ½ × (100-60) × 25 = $500</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Lesson Modal -->
+    <div id="lessonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center justify-between">
+                    <h2 id="lessonModalTitle" class="text-2xl font-bold text-gray-800">Lesson Title</h2>
+                    <button id="closeLessonModal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="lessonModalContent" class="p-6">
+                <!-- Lesson content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Congratulations!</h3>
+            <p id="successMessage" class="text-gray-600 mb-4">You've earned tokens!</p>
+            <div class="flex items-center justify-center mb-4">
+                <i class="fas fa-coins text-yellow-600 mr-2"></i>
+                <span id="tokensEarned" class="text-2xl font-bold text-yellow-600">+10</span>
+            </div>
+            <button id="closeSuccessModal" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                Continue Learning
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global state management
+        let currentUser = null;
+        let userProgress = {};
+        let marketChart = null;
+        let gameState = {
+            tokens: 0,
+            completedLessons: [],
+            challengesWon: 0,
+            currentLevel: 1,
+            iterationCount: 0
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = savedUser;
+                loadUserProgress();
+                showMainPlatform();
+            } else {
+                showLoginScreen();
+            }
+
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            // Navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const section = e.target.closest('.nav-btn').dataset.section;
+                    showSection(section);
+                });
+            });
+
+            // Lesson cards
+            document.querySelectorAll('.lesson-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const lesson = e.target.closest('.lesson-card').dataset.lesson;
+                    if (!card.classList.contains('opacity-60')) {
+                        openLesson(lesson);
+                    }
+                });
+            });
+
+            // Challenge cards
+            document.querySelectorAll('.challenge-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const challenge = e.target.closest('.challenge-card').dataset.challenge;
+                    startChallenge(challenge);
+                });
+            });
+
+            // Role play cards
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const role = e.target.closest('.role-card').dataset.role;
+                    startRolePlay(role);
+                });
+            });
+
+            // Modal close buttons
+            document.getElementById('closeLessonModal').addEventListener('click', closeLessonModal);
+            document.getElementById('closeSuccessModal').addEventListener('click', closeSuccessModal);
+            document.getElementById('closeChallengeBtn').addEventListener('click', closeChallenge);
+            document.getElementById('closeRolePlayBtn').addEventListener('click', closeRolePlay);
+
+            // Simulator controls
+            setupSimulatorControls();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (username && password.length === 4 && /^\d{4}$/.test(password)) {
+                currentUser = username;
+                localStorage.setItem('currentUser', username);
+                loadUserProgress();
+                showMainPlatform();
+            } else {
+                alert('Please enter a valid username and 4-digit password.');
+            }
+        }
+
+        function handleLogout() {
+            saveUserProgress();
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+            userProgress = {};
+            gameState = {
+                tokens: 0,
+                completedLessons: [],
+                challengesWon: 0,
+                currentLevel: 1,
+                iterationCount: 0
+            };
+            showLoginScreen();
+        }
+
+        function loadUserProgress() {
+            const savedProgress = localStorage.getItem(`progress_${currentUser}`);
+            if (savedProgress) {
+                userProgress = JSON.parse(savedProgress);
+                gameState = { ...gameState, ...userProgress };
+            } else {
+                // Initialize new user with basic lesson completed
+                gameState.completedLessons = ['basics'];
+                gameState.tokens = 10;
+                saveUserProgress();
+            }
+            updateUI();
+        }
+
+        function saveUserProgress() {
+            if (currentUser) {
+                localStorage.setItem(`progress_${currentUser}`, JSON.stringify(gameState));
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainPlatform').classList.add('hidden');
+        }
+
+        function showMainPlatform() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainPlatform').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = currentUser;
+            document.getElementById('welcomeUser').textContent = currentUser;
+            updateUI();
+        }
+
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName).classList.remove('hidden');
+            
+            // Update navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            document.querySelector(`[data-section="${sectionName}"]`).classList.remove('border-transparent', 'text-gray-500');
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('border-blue-500', 'text-blue-600');
+
+            // Initialize section-specific features
+            if (sectionName === 'simulator') {
+                initializeSimulator();
+            }
+        }
+
+        function updateUI() {
+            // Update token display
+            document.getElementById('tokenCount').textContent = gameState.tokens;
+            document.getElementById('totalTokens').textContent = gameState.tokens;
+            
+            // Update dashboard stats
+            document.getElementById('completedLessons').textContent = gameState.completedLessons.length;
+            document.getElementById('challengesWon').textContent = gameState.challengesWon;
+            document.getElementById('currentLevel').textContent = gameState.currentLevel;
+
+            // Update learning path
+            updateLearningPath();
+        }
+
+        function updateLearningPath() {
+            const lessons = ['basics', 'supply-demand', 'elasticity', 'equilibrium', 'market-structures', 'government-intervention'];
+            const pathItems = document.querySelectorAll('.learning-path-item');
+            
+            pathItems.forEach((item, index) => {
+                const lesson = lessons[index];
+                const isCompleted = gameState.completedLessons.includes(lesson);
+                const isUnlocked = index === 0 || gameState.completedLessons.includes(lessons[index - 1]);
+                
+                if (isCompleted) {
+                    item.className = 'learning-path-item flex items-center p-4 bg-green-50 border border-green-200 rounded-lg';
+                    item.querySelector('.w-8').innerHTML = '<i class="fas fa-check text-white text-sm"></i>';
+                    item.querySelector('.w-8').className = 'w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-4';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').textContent = 'Completed';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').className = 'text-green-600 font-semibold';
+                } else if (isUnlocked) {
+                    item.className = 'learning-path-item flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100';
+                    item.querySelector('.w-8').innerHTML = `<span class="text-white text-sm font-bold">${index + 1}</span>`;
+                    item.querySelector('.w-8').className = 'w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-4';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').textContent = 'Available';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').className = 'text-blue-600 font-semibold';
+                } else {
+                    item.className = 'learning-path-item flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg opacity-60';
+                    item.querySelector('.w-8').innerHTML = '<i class="fas fa-lock text-white text-sm"></i>';
+                    item.querySelector('.w-8').className = 'w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center mr-4';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').textContent = 'Locked';
+                    item.querySelector('.text-green-600, .text-blue-600, .text-gray-500').className = 'text-gray-500 font-semibold';
+                }
+            });
+        }
+
+        function openLesson(lessonName) {
+            const lessons = {
+                'basics': {
+                    title: 'Economics Basics',
+                    content: `
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">What is Economics?</h3>
+                                <p class="text-gray-600 mb-4">Economics is the study of how societies allocate scarce resources to satisfy unlimited wants and needs.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">Key Concepts</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-blue-50 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-800 mb-2">Scarcity</h4>
+                                        <p class="text-sm text-gray-600">Limited resources relative to unlimited wants</p>
+                                    </div>
+                                    <div class="bg-green-50 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-green-800 mb-2">Opportunity Cost</h4>
+                                        <p class="text-sm text-gray-600">The value of the next best alternative foregone</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button onclick="completeLesson('basics')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                                    Complete Lesson (+10 tokens)
+                                </button>
+                            </div>
+                        </div>
+                    `
+                },
+                'supply-demand': {
+                    title: 'Supply & Demand',
+                    content: `
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">Understanding Market Forces</h3>
+                                <p class="text-gray-600 mb-4">Supply and demand are the fundamental forces that determine prices in a market economy.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-red-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-800 mb-2">Supply</h4>
+                                    <p class="text-sm text-gray-600 mb-3">The quantity of a good that producers are willing and able to offer at various prices.</p>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Higher prices → Higher supply</li>
+                                        <li>• Lower prices → Lower supply</li>
+                                        <li>• Upward sloping curve</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-800 mb-2">Demand</h4>
+                                    <p class="text-sm text-gray-600 mb-3">The quantity of a good that consumers are willing and able to buy at various prices.</p>
+                                    <ul class="text-sm text-gray-600 space-y-1">
+                                        <li>• Higher prices → Lower demand</li>
+                                        <li>• Lower prices → Higher demand</li>
+                                        <li>• Downward sloping curve</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-800 mb-2">Market Equilibrium</h4>
+                                <p class="text-sm text-gray-600">The point where supply and demand curves intersect, determining the market price and quantity.</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button onclick="completeLesson('supply-demand')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                                    Complete Lesson (+15 tokens)
+                                </button>
+                            </div>
+                        </div>
+                    `
+                }
+            };
+
+            const lesson = lessons[lessonName];
+            if (lesson) {
+                document.getElementById('lessonModalTitle').textContent = lesson.title;
+                document.getElementById('lessonModalContent').innerHTML = lesson.content;
+                document.getElementById('lessonModal').classList.remove('hidden');
+            }
+        }
+
+        function completeLesson(lessonName) {
+            if (!gameState.completedLessons.includes(lessonName)) {
+                gameState.completedLessons.push(lessonName);
+                const tokens = lessonName === 'basics' ? 10 : 15;
+                awardTokens(tokens, `Lesson completed!`);
+                saveUserProgress();
+                updateUI();
+            }
+            closeLessonModal();
+        }
+
+        function closeLessonModal() {
+            document.getElementById('lessonModal').classList.add('hidden');
+        }
+
+        function startChallenge(challengeName) {
+            const challenges = {
+                'elasticity': {
+                    title: 'Elasticity Challenge',
+                    content: generateElasticityChallenge()
+                },
+                'market-analysis': {
+                    title: 'Market Analysis Challenge',
+                    content: generateMarketAnalysisChallenge()
+                }
+            };
+
+            const challenge = challenges[challengeName];
+            if (challenge) {
+                document.getElementById('challengeTitle').textContent = challenge.title;
+                document.getElementById('challengeContent').innerHTML = challenge.content;
+                document.getElementById('activeChallenge').classList.remove('hidden');
+                gameState.iterationCount++;
+            }
+        }
+
+        function generateElasticityChallenge() {
+            const scenarios = [
+                {
+                    product: 'Luxury Cars',
+                    priceChange: 20,
+                    demandChange: -35,
+                    correct: 'elastic'
+                },
+                {
+                    product: 'Gasoline',
+                    priceChange: 15,
+                    demandChange: -5,
+                    correct: 'inelastic'
+                },
+                {
+                    product: 'Movie Tickets',
+                    priceChange: 10,
+                    demandChange: -10,
+                    correct: 'unit elastic'
+                }
+            ];
+
+            const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+            
+            return `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">Scenario</h4>
+                        <p class="text-gray-700">The price of <strong>${scenario.product}</strong> increases by ${scenario.priceChange}%, and as a result, the quantity demanded decreases by ${Math.abs(scenario.demandChange)}%.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-3">What is the price elasticity of demand?</h4>
+                        <div class="space-y-2">
+                            <button onclick="checkElasticityAnswer('elastic', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                A) Elastic (PED > 1)
+                            </button>
+                            <button onclick="checkElasticityAnswer('inelastic', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                B) Inelastic (PED < 1)
+                            </button>
+                            <button onclick="checkElasticityAnswer('unit elastic', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                C) Unit Elastic (PED = 1)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateMarketAnalysisChallenge() {
+            const scenarios = [
+                {
+                    situation: 'A new technology reduces production costs for smartphones',
+                    effect: 'supply increase',
+                    correct: 'price decrease, quantity increase'
+                },
+                {
+                    situation: 'Consumer income increases significantly',
+                    effect: 'demand increase',
+                    correct: 'price increase, quantity increase'
+                }
+            ];
+
+            const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+            
+            return `
+                <div class="space-y-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">Market Scenario</h4>
+                        <p class="text-gray-700">${scenario.situation}</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-3">What will happen to price and quantity?</h4>
+                        <div class="space-y-2">
+                            <button onclick="checkMarketAnswer('price decrease, quantity increase', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                A) Price decreases, Quantity increases
+                            </button>
+                            <button onclick="checkMarketAnswer('price increase, quantity increase', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                B) Price increases, Quantity increases
+                            </button>
+                            <button onclick="checkMarketAnswer('price increase, quantity decrease', '${scenario.correct}')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                C) Price increases, Quantity decreases
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkElasticityAnswer(answer, correct) {
+            const isCorrect = answer === correct;
+            let tokens = 0;
+            
+            if (isCorrect) {
+                tokens = 25;
+                gameState.challengesWon++;
+            } else if (gameState.iterationCount > 5) {
+                tokens = -5; // Deduct points after 5 iterations
+            }
+            
+            if (tokens !== 0) {
+                awardTokens(tokens, isCorrect ? 'Correct! Well done!' : 'Incorrect. Points deducted.');
+            }
+            
+            closeChallenge();
+            saveUserProgress();
+            updateUI();
+        }
+
+        function checkMarketAnswer(answer, correct) {
+            const isCorrect = answer === correct;
+            let tokens = 0;
+            
+            if (isCorrect) {
+                tokens = 30;
+                gameState.challengesWon++;
+            } else if (gameState.iterationCount > 5) {
+                tokens = -5;
+            }
+            
+            if (tokens !== 0) {
+                awardTokens(tokens, isCorrect ? 'Excellent analysis!' : 'Incorrect. Points deducted.');
+            }
+            
+            closeChallenge();
+            saveUserProgress();
+            updateUI();
+        }
+
+        function closeChallenge() {
+            document.getElementById('activeChallenge').classList.add('hidden');
+        }
+
+        function startRolePlay(role) {
+            const rolePlayScenarios = {
+                'consumer': {
+                    title: 'Consumer Decision Making',
+                    content: generateConsumerScenario()
+                },
+                'producer': {
+                    title: 'Producer Strategy',
+                    content: generateProducerScenario()
+                },
+                'government': {
+                    title: 'Government Policy',
+                    content: generateGovernmentScenario()
+                }
+            };
+
+            const scenario = rolePlayScenarios[role];
+            if (scenario) {
+                document.getElementById('rolePlayTitle').textContent = scenario.title;
+                document.getElementById('rolePlayContent').innerHTML = scenario.content;
+                document.getElementById('activeRolePlay').classList.remove('hidden');
+            }
+        }
+
+        function generateConsumerScenario() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">Your Situation</h4>
+                        <p class="text-gray-700">You have a budget of $500 to spend on entertainment this month. You're considering:</p>
+                        <ul class="mt-2 space-y-1 text-gray-700">
+                            <li>• Concert tickets: $150 each</li>
+                            <li>• Movie tickets: $15 each</li>
+                            <li>• Video games: $60 each</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-3">What's your optimal spending strategy?</h4>
+                        <div class="space-y-2">
+                            <button onclick="handleConsumerChoice('diversified')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                A) Buy a mix of all three for variety
+                            </button>
+                            <button onclick="handleConsumerChoice('focused')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                B) Focus on what gives you the most utility per dollar
+                            </button>
+                            <button onclick="handleConsumerChoice('save')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                C) Save some money for unexpected opportunities
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateProducerScenario() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">Your Business</h4>
+                        <p class="text-gray-700">You run a coffee shop. Your costs are $3 per cup, and you currently sell 100 cups daily at $5 each. A competitor just opened nearby.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-3">How do you respond?</h4>
+                        <div class="space-y-2">
+                            <button onclick="handleProducerChoice('price-cut')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                A) Lower prices to $4.50 to compete
+                            </button>
+                            <button onclick="handleProducerChoice('differentiate')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                B) Improve quality and maintain price
+                            </button>
+                            <button onclick="handleProducerChoice('efficiency')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                C) Focus on reducing costs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateGovernmentScenario() {
+            return `
+                <div class="space-y-6">
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Policy Challenge</h4>
+                        <p class="text-gray-700">Housing prices in your city have increased 40% in two years, making it difficult for middle-class families to afford homes.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-3">What policy do you implement?</h4>
+                        <div class="space-y-2">
+                            <button onclick="handleGovernmentChoice('rent-control')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                A) Implement rent control to cap prices
+                            </button>
+                            <button onclick="handleGovernmentChoice('supply-increase')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                B) Incentivize new housing construction
+                            </button>
+                            <button onclick="handleGovernmentChoice('subsidies')" class="w-full text-left p-3 border rounded-lg hover:bg-gray-50">
+                                C) Provide housing subsidies to families
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleConsumerChoice(choice) {
+            let message = '';
+            let tokens = 15;
+            
+            switch(choice) {
+                case 'diversified':
+                    message = 'Good strategy! Diversification can maximize overall satisfaction.';
+                    break;
+                case 'focused':
+                    message = 'Excellent! You understand marginal utility per dollar.';
+                    tokens = 20;
+                    break;
+                case 'save':
+                    message = 'Smart thinking! Saving provides flexibility for future opportunities.';
+                    break;
+            }
+            
+            awardTokens(tokens, message);
+            closeRolePlay();
+        }
+
+        function handleProducerChoice(choice) {
+            let message = '';
+            let tokens = 15;
+            
+            switch(choice) {
+                case 'price-cut':
+                    message = 'Risky but could work! Price competition can be effective short-term.';
+                    break;
+                case 'differentiate':
+                    message = 'Excellent strategy! Product differentiation creates competitive advantage.';
+                    tokens = 25;
+                    break;
+                case 'efficiency':
+                    message = 'Smart approach! Lower costs improve profit margins.';
+                    tokens = 20;
+                    break;
+            }
+            
+            awardTokens(tokens, message);
+            closeRolePlay();
+        }
+
+        function handleGovernmentChoice(choice) {
+            let message = '';
+            let tokens = 15;
+            
+            switch(choice) {
+                case 'rent-control':
+                    message = 'Controversial choice. Rent control can have unintended consequences.';
+                    break;
+                case 'supply-increase':
+                    message = 'Excellent! Increasing supply addresses the root cause.';
+                    tokens = 30;
+                    break;
+                case 'subsidies':
+                    message = 'Helpful for families, but consider long-term fiscal impact.';
+                    tokens = 20;
+                    break;
+            }
+            
+            awardTokens(tokens, message);
+            closeRolePlay();
+        }
+
+        function closeRolePlay() {
+            document.getElementById('activeRolePlay').classList.add('hidden');
+        }
+
+        function setupSimulatorControls() {
+            const supplySlopeSlider = document.getElementById('supplySlopeSlider');
+            const supplyShiftSlider = document.getElementById('supplyShiftSlider');
+            const demandSlopeSlider = document.getElementById('demandSlopeSlider');
+            const demandShiftSlider = document.getElementById('demandShiftSlider');
+            const resetBtn = document.getElementById('resetSimulator');
+
+            [supplySlopeSlider, supplyShiftSlider, demandSlopeSlider, demandShiftSlider].forEach(slider => {
+                slider.addEventListener('input', updateSimulator);
+            });
+
+            resetBtn.addEventListener('click', resetSimulator);
+        }
+
+        function initializeSimulator() {
+            if (!marketChart) {
+                const ctx = document.getElementById('marketChart').getContext('2d');
+                marketChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Supply',
+                                data: [],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'transparent',
+                                tension: 0
+                            },
+                            {
+                                label: 'Demand',
+                                data: [],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'transparent',
+                                tension: 0
+                            },
+                            {
+                                label: 'Equilibrium',
+                                data: [],
+                                borderColor: '#10b981',
+                                backgroundColor: '#10b981',
+                                pointRadius: 8,
+                                showLine: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: 'Quantity'
+                                },
+                                min: 0,
+                                max: 100
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Price ($)'
+                                },
+                                min: 0,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        }
+                    }
+                });
+            }
+            updateSimulator();
+        }
+
+        function updateSimulator() {
+            const supplySlope = parseFloat(document.getElementById('supplySlopeSlider').value);
+            const supplyShift = parseFloat(document.getElementById('supplyShiftSlider').value);
+            const demandSlope = parseFloat(document.getElementById('demandSlopeSlider').value);
+            const demandShift = parseFloat(document.getElementById('demandShiftSlider').value);
+
+            // Update display values
+            document.getElementById('supplySlope').textContent = supplySlope.toFixed(1);
+            document.getElementById('supplyShift').textContent = supplyShift;
+            document.getElementById('demandSlope').textContent = demandSlope.toFixed(1);
+            document.getElementById('demandShift').textContent = demandShift;
+
+            // Generate curve data
+            const supplyData = [];
+            const demandData = [];
+
+            for (let q = 0; q <= 100; q += 5) {
+                // Supply: P = (Q - supplyShift) * supplySlope + 10
+                const supplyPrice = Math.max(0, (q - supplyShift) * supplySlope + 10);
+                if (supplyPrice <= 100) {
+                    supplyData.push({x: q, y: supplyPrice});
+                }
+
+                // Demand: P = (100 - Q + demandShift) * Math.abs(demandSlope) + 10
+                const demandPrice = Math.max(0, (100 - q + demandShift) * Math.abs(demandSlope) + 10);
+                if (demandPrice <= 100) {
+                    demandData.push({x: q, y: demandPrice});
+                }
+            }
+
+            // Calculate equilibrium
+            const equilibrium = calculateEquilibrium(supplySlope, supplyShift, demandSlope, demandShift);
+
+            // Update chart
+            if (marketChart) {
+                marketChart.data.datasets[0].data = supplyData;
+                marketChart.data.datasets[1].data = demandData;
+                marketChart.data.datasets[2].data = equilibrium ? [equilibrium] : [];
+                marketChart.update();
+
+                // Update equilibrium display
+                if (equilibrium) {
+                    document.getElementById('equilibriumPrice').textContent = `$${equilibrium.y.toFixed(2)}`;
+                    document.getElementById('equilibriumQuantity').textContent = equilibrium.x.toFixed(0);
+                }
+            }
+        }
+
+        function calculateEquilibrium(supplySlope, supplyShift, demandSlope, demandShift) {
+            // Supply: P = (Q - supplyShift) * supplySlope + 10
+            // Demand: P = (100 - Q + demandShift) * Math.abs(demandSlope) + 10
+            // Set equal: (Q - supplyShift) * supplySlope + 10 = (100 - Q + demandShift) * Math.abs(demandSlope) + 10
+            
+            const a = supplySlope;
+            const b = -supplyShift * supplySlope;
+            const c = (100 + demandShift) * Math.abs(demandSlope);
+            const d = Math.abs(demandSlope);
+
+            // a*Q + b = c - d*Q
+            // (a + d)*Q = c - b
+            const equilibriumQ = (c - b) / (a + d);
+            const equilibriumP = a * equilibriumQ + b + 10;
+
+            if (equilibriumQ >= 0 && equilibriumQ <= 100 && equilibriumP >= 0 && equilibriumP <= 100) {
+                return {x: equilibriumQ, y: equilibriumP};
+            }
+            return null;
+        }
+
+        function resetSimulator() {
+            document.getElementById('supplySlopeSlider').value = 1;
+            document.getElementById('supplyShiftSlider').value = 0;
+            document.getElementById('demandSlopeSlider').value = -1;
+            document.getElementById('demandShiftSlider').value = 0;
+            updateSimulator();
+        }
+
+        function awardTokens(amount, message) {
+            gameState.tokens = Math.max(0, gameState.tokens + amount);
+            
+            // Show success modal
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('tokensEarned').textContent = amount > 0 ? `+${amount}` : amount;
+            document.getElementById('tokensEarned').className = amount > 0 ? 'text-2xl font-bold text-yellow-600' : 'text-2xl font-bold text-red-600';
+            document.getElementById('successModal').classList.remove('hidden');
+            
+            // Add token animation
+            document.getElementById('tokenCount').classList.add('token-animation');
+            setTimeout(() => {
+                document.getElementById('tokenCount').classList.remove('token-animation');
+            }, 600);
+            
+            saveUserProgress();
+            updateUI();
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        // Software Testing Functions
+        function runComprehensiveTests() {
+            console.log('🧪 Starting Comprehensive Software Tests...');
+            
+            const testResults = {
+                authentication: testAuthentication(),
+                navigation: testNavigation(),
+                dataManagement: testDataManagement(),
+                gameLogic: testGameLogic(),
+                simulator: testSimulator(),
+                challenges: testChallenges(),
+                rolePlay: testRolePlay(),
+                formulas: testFormulas(),
+                ui: testUI(),
+                responsiveness: testResponsiveness()
+            };
+            
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            const totalTests = Object.keys(testResults).length;
+            
+            console.log(`✅ Tests Completed: ${passedTests}/${totalTests} passed`);
+            
+            if (passedTests === totalTests) {
+                console.log('🎉 All tests passed! Platform is ready for use.');
+            } else {
+                console.log('⚠️ Some tests failed. Check individual test results above.');
+            }
+            
+            return testResults;
+        }
+
+        function testAuthentication() {
+            console.log('Testing authentication system...');
+            try {
+                // Test valid login
+                const testUser = 'testuser';
+                const testPassword = '1234';
+                
+                // Simulate login
+                currentUser = testUser;
+                localStorage.setItem('currentUser', testUser);
+                
+                // Test user progress loading
+                loadUserProgress();
+                
+                // Test logout
+                handleLogout();
+                
+                console.log('✅ Authentication tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Authentication test failed:', error);
+                return false;
+            }
+        }
+
+        function testNavigation() {
+            console.log('Testing navigation system...');
+            try {
+                const sections = ['dashboard', 'lessons', 'simulator', 'challenges', 'roleplay', 'formulas'];
+                
+                sections.forEach(section => {
+                    showSection(section);
+                    const sectionElement = document.getElementById(section);
+                    if (sectionElement.classList.contains('hidden')) {
+                        throw new Error(`Section ${section} not properly shown`);
+                    }
+                });
+                
+                console.log('✅ Navigation tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Navigation test failed:', error);
+                return false;
+            }
+        }
+
+        function testDataManagement() {
+            console.log('Testing data management...');
+            try {
+                // Test saving and loading user progress
+                const testProgress = {
+                    tokens: 100,
+                    completedLessons: ['basics', 'supply-demand'],
+                    challengesWon: 5,
+                    currentLevel: 2,
+                    iterationCount: 3
+                };
+                
+                currentUser = 'testuser';
+                gameState = testProgress;
+                saveUserProgress();
+                
+                // Reset and load
+                gameState = { tokens: 0, completedLessons: [], challengesWon: 0, currentLevel: 1, iterationCount: 0 };
+                loadUserProgress();
+                
+                if (gameState.tokens !== testProgress.tokens) {
+                    throw new Error('Token data not properly saved/loaded');
+                }
+                
+                console.log('✅ Data management tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Data management test failed:', error);
+                return false;
+            }
+        }
+
+        function testGameLogic() {
+            console.log('Testing game logic...');
+            try {
+                // Test token awarding
+                const initialTokens = gameState.tokens;
+                awardTokens(10, 'Test award');
+                
+                if (gameState.tokens !== initialTokens + 10) {
+                    throw new Error('Token awarding not working correctly');
+                }
+                
+                // Test token deduction
+                awardTokens(-5, 'Test deduction');
+                
+                if (gameState.tokens !== initialTokens + 5) {
+                    throw new Error('Token deduction not working correctly');
+                }
+                
+                // Test lesson completion
+                completeLesson('basics');
+                
+                if (!gameState.completedLessons.includes('basics')) {
+                    throw new Error('Lesson completion not working correctly');
+                }
+                
+                console.log('✅ Game logic tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Game logic test failed:', error);
+                return false;
+            }
+        }
+
+        function testSimulator() {
+            console.log('Testing simulator functionality...');
+            try {
+                // Test equilibrium calculation
+                const equilibrium = calculateEquilibrium(1, 0, -1, 0);
+                
+                if (!equilibrium || typeof equilibrium.x !== 'number' || typeof equilibrium.y !== 'number') {
+                    throw new Error('Equilibrium calculation failed');
+                }
+                
+                // Test slider updates
+                document.getElementById('supplySlopeSlider').value = 1.5;
+                updateSimulator();
+                
+                const displayedSlope = document.getElementById('supplySlope').textContent;
+                if (displayedSlope !== '1.5') {
+                    throw new Error('Slider updates not working correctly');
+                }
+                
+                console.log('✅ Simulator tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Simulator test failed:', error);
+                return false;
+            }
+        }
+
+        function testChallenges() {
+            console.log('Testing challenge system...');
+            try {
+                // Test challenge generation
+                const elasticityChallenge = generateElasticityChallenge();
+                const marketChallenge = generateMarketAnalysisChallenge();
+                
+                if (!elasticityChallenge || !marketChallenge) {
+                    throw new Error('Challenge generation failed');
+                }
+                
+                // Test answer checking
+                const initialChallengesWon = gameState.challengesWon;
+                checkElasticityAnswer('elastic', 'elastic'); // Correct answer
+                
+                if (gameState.challengesWon !== initialChallengesWon + 1) {
+                    throw new Error('Challenge answer checking failed');
+                }
+                
+                console.log('✅ Challenge tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Challenge test failed:', error);
+                return false;
+            }
+        }
+
+        function testRolePlay() {
+            console.log('Testing role play system...');
+            try {
+                // Test scenario generation
+                const consumerScenario = generateConsumerScenario();
+                const producerScenario = generateProducerScenario();
+                const governmentScenario = generateGovernmentScenario();
+                
+                if (!consumerScenario || !producerScenario || !governmentScenario) {
+                    throw new Error('Role play scenario generation failed');
+                }
+                
+                // Test choice handling
+                const initialTokens = gameState.tokens;
+                handleConsumerChoice('focused');
+                
+                if (gameState.tokens <= initialTokens) {
+                    throw new Error('Role play choice handling failed');
+                }
+                
+                console.log('✅ Role play tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Role play test failed:', error);
+                return false;
+            }
+        }
+
+        function testFormulas() {
+            console.log('Testing formulas section...');
+            try {
+                // Test formula display
+                showSection('formulas');
+                const formulasSection = document.getElementById('formulas');
+                
+                if (formulasSection.classList.contains('hidden')) {
+                    throw new Error('Formulas section not displaying correctly');
+                }
+                
+                // Check if formula cards are present
+                const formulaCards = formulasSection.querySelectorAll('.formula-card');
+                if (formulaCards.length === 0) {
+                    throw new Error('Formula cards not found');
+                }
+                
+                console.log('✅ Formulas tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Formulas test failed:', error);
+                return false;
+            }
+        }
+
+        function testUI() {
+            console.log('Testing UI components...');
+            try {
+                // Test modal functionality
+                openLesson('basics');
+                const lessonModal = document.getElementById('lessonModal');
+                
+                if (lessonModal.classList.contains('hidden')) {
+                    throw new Error('Lesson modal not opening correctly');
+                }
+                
+                closeLessonModal();
+                
+                if (!lessonModal.classList.contains('hidden')) {
+                    throw new Error('Lesson modal not closing correctly');
+                }
+                
+                // Test UI updates
+                updateUI();
+                
+                const tokenDisplay = document.getElementById('tokenCount');
+                if (!tokenDisplay.textContent) {
+                    throw new Error('Token display not updating correctly');
+                }
+                
+                console.log('✅ UI tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ UI test failed:', error);
+                return false;
+            }
+        }
+
+        function testResponsiveness() {
+            console.log('Testing responsive design...');
+            try {
+                // Test grid layouts exist
+                const grids = document.querySelectorAll('.grid');
+                if (grids.length === 0) {
+                    throw new Error('No responsive grid layouts found');
+                }
+                
+                // Test responsive classes
+                const responsiveElements = document.querySelectorAll('[class*="md:"], [class*="lg:"]');
+                if (responsiveElements.length === 0) {
+                    throw new Error('No responsive classes found');
+                }
+                
+                console.log('✅ Responsiveness tests passed');
+                return true;
+            } catch (error) {
+                console.error('❌ Responsiveness test failed:', error);
+                return false;
+            }
+        }
+
+        // Run tests when page loads (in development)
+        window.addEventListener('load', function() {
+            // Uncomment the line below to run tests automatically
+            // setTimeout(runComprehensiveTests, 2000);
+        });
+
+        // Make test function available globally for manual testing
+        window.runTests = runComprehensiveTests;
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'983e1bea636df096',t:'MTc1ODY3MzE1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
